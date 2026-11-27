@@ -491,7 +491,7 @@ class Workbench:
         config = self.model.model.body.config
         calibration = ('复用身体竖直标定：' + config.get('upright_saved_at', '日期未记录')
                        if config.get('upright_confirmed') else '身体竖直参考尚未确认')
-        hint = Gtk.Label(label='电脑端渲染 · 左键旋转 / 右键平移 / 滚轮缩放。\n' + calibration + '。\n升降毫米数为模型估算；头部、腰旋转、侧倾和轮组暂为静态参考。', xalign=0)
+        hint = Gtk.Label(label='电脑端渲染 · 左键旋转 / 右键平移 / 滚轮缩放。\n' + calibration + '。\n升降毫米数为模型估算；头部和腰部跟随关节反馈，轮组为静态参考。', xalign=0)
         hint.set_line_wrap(True)
         panel.pack_start(hint, False, False, 0)
         split.pack2(panel, resize=True, shrink=False)

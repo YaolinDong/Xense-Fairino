@@ -30,9 +30,9 @@ class MountTests(unittest.TestCase):
                 self.assertLess(result["max_orientation_error_deg"], .01)
 
     def test_dh_origin_offsets_are_included_once_and_pose_roundtrips(self):
-        for side, lateral in (("left", 62.5), ("right", -62.5)):
+        for side, lateral in (("left", 48.), ("right", -48.)):
             mount = CHEST_FROM_DH[side]
-            np.testing.assert_allclose(mount[:3, 3], [0., lateral, 329.], atol=.002)
+            np.testing.assert_allclose(mount[:3, 3], [0., lateral, 330.], atol=.002)
             self.assertGreater(np.linalg.norm(BODY_FROM_DH[side][:3, 3]-BODY_FROM_BASE[side][:3, 3]), .94)
             tcp = np.eye(4)
             tcp[:3, 3] = [153., -82., 408.]
@@ -43,7 +43,7 @@ class MountTests(unittest.TestCase):
         kin, model, hw = VendorKinematics(), FullModel(), hardware()
         raw_axes = np.array([[0., 0., -1.], [-1., 0., 0.], [0., 1., 0.]])
         # Define chest axes independently from the runtime mount matrices.
-        chest_from_body_rotation = np.array([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]])
+        chest_from_body_rotation = np.array([[0., 1., 0.], [-1., 0., 0.], [0., 0., 1.]])
         for side, indices in ARMS.items():
             q0 = [hw["command_position"][j-1] for j in indices]
             tcp = np.array(kin.forward_tcp(q0)[0])

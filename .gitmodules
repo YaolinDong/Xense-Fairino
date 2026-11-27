@@ -1,4 +1,4 @@
 [submodule "third_party/fairino_ik"]
 	path = third_party/fairino_ik
 	url = git@github.com:XenseRobotics-AI/fairino_ik.git
-	branch = feat/pinocchio-4.1.0
+	branch = main

@@ -1,130 +1,130 @@
 {
-  "source_package": "/home/lim/Documents/法奥/法奥ART7-Revo3转接件设计资料_20261013/01_法奥ART7/整机URDF_20260731/fairino_wheel_legged_robot_description",
-  "urdf_sha256": "d64b19f6fc825ecdd2c97dbeb26514f844cba2ce28fa010864c0eed11e190cbe",
+  "source_package": "RD53-轮足机器人URDF和模型-v1.0-20261030/fairino_wheel_legged_robot_description",
+  "urdf_sha256": "96d4b4fb6e6a584bc55e1e9f1cf538ff9b02cc2093f1cda1cc983cd48199be9c",
   "files": {
     "base_link.STL": {
       "bytes": 2125384,
       "sha256": "89f3b8d6d31dc3546e7dd4d8dc35371cf4507007829217b2431a46974f6608b8"
     },
     "amr_wheel11_Link.STL": {
-      "bytes": 1909784,
-      "sha256": "c2136488480b0dfb23d47e50651f24b474a7a05bc6a09e1afd22e3f14a85ed5e"
+      "bytes": 1589484,
+      "sha256": "425b02aa03e02d41b30f3819f343f8f08ada56bb1aa36832192402161bec6605"
     },
     "amr_wheel12_Link.STL": {
-      "bytes": 14884,
-      "sha256": "d5c6587b7d390e63dea3975f488fb344e4ddb38339ab0a1cd7438a701a83f025"
+      "bytes": 344684,
+      "sha256": "ccfdef9aba1e352e18d5bc4c5cff74674b9396f371acad17c451d0e4820d4056"
     },
     "amr_wheel21_Link.STL": {
-      "bytes": 1909784,
-      "sha256": "0ae933b74a349405de4bcbbbb209e1770406887bbed3af33b90a1f839b948f35"
+      "bytes": 1589484,
+      "sha256": "9608e789ca56845dcb36f24d14ab87c41e3fbdc9befa2c905e124a35a04cc0d4"
     },
     "amr_wheel22_Link.STL": {
-      "bytes": 14884,
-      "sha256": "508ae41daacc433fb19dc001e20f585fcf27ef495a340dcddb60812052347519"
+      "bytes": 344684,
+      "sha256": "92d9f93394b95c1c531001821684cc873c04cf9682ff4da367ae110d54ab3911"
     },
     "amr_wheel31_Link.STL": {
-      "bytes": 1909784,
-      "sha256": "e5eeb5807a5e1c5ca95e62ae7eb33e8b62a6da050f080e0167344d093342a920"
+      "bytes": 1589484,
+      "sha256": "3c2f6668a0d447aea849842a7264f548611c65151e76764432f0721a3ef27bdd"
     },
     "amr_wheel32_Link.STL": {
-      "bytes": 15284,
-      "sha256": "cf0bbc7da4a7ae580d0fbeabf644007a8950ce1bbda9e71b7ac318e7b5455b70"
+      "bytes": 344684,
+      "sha256": "c8e8a91b0a6907a7661a64598d72763e6836e2ad72be3876261326b15cd74a57"
     },
     "amr_wheel41_Link.STL": {
-      "bytes": 1909784,
-      "sha256": "95c40c3a9ee2e6c4d473795aa54b1a7d97c509b3dfdf9d3141cd8db252141bbd"
+      "bytes": 1589484,
+      "sha256": "60287a848b5e1d985003c255ad6e5a42153d23a605f1c2b31101b829c096e50b"
     },
     "amr_wheel42_Link.STL": {
-      "bytes": 14884,
-      "sha256": "281a47d75f0b67ff7a0058ed74b819c4dcc1894872b036744014e31d4344c8a9"
+      "bytes": 344684,
+      "sha256": "c37ed25dbf417a908e9ca8c199b1e995114fabc8da0ae0c0ab6136ffcfb6559d"
     },
     "smallleg_Link.STL": {
       "bytes": 324084,
-      "sha256": "084185727812a61b236189d1228394318d437bd1def19acf7a47bfb951d29985"
+      "sha256": "6e1cf0a577f399d6eec0dfc233eb1d88293fc8dd78f9e1153d977586e0d5bdad"
     },
     "bigleg_Link.STL": {
       "bytes": 520184,
-      "sha256": "c6fb983ac11143c53b0f132e51404ff0c93dbbb1a4a5c10ab7963fbe585fbf68"
+      "sha256": "4a3d0eeef859efe6ead5dc9528973b8a5ef1358453a8167bb4f675e6e2c4fa49"
     },
     "hip_Link.STL": {
       "bytes": 43384,
-      "sha256": "040b500ad6b7c3579dee298ab01139c1e35a89ea9ea42f2eb500fdf59dfd197b"
+      "sha256": "2514d014740fc914e5745be31e2b8dcedb1dc7976b263de65231ddef6bb78712"
     },
     "waist_Link.STL": {
       "bytes": 456584,
-      "sha256": "25f696d2fe1405cabdceaacea731a51a239bd7cf45210c8fe3929f5d91f7508f"
+      "sha256": "d2602b06523a24a3cb8db6837a353da709836edf2c571354b56b96ca06176211"
     },
     "body_Link.STL": {
-      "bytes": 2430884,
-      "sha256": "ab29eef070cf959afd1f0f485a03ae9bf2050ca95982f506b7add00363df4a9c"
+      "bytes": 2079284,
+      "sha256": "1b39c52fff879ed17cfd84d1c2a7fb58dcbe483efebf14114b7d4cbe798206ac"
     },
     "head_Link.STL": {
       "bytes": 5649684,
-      "sha256": "0d1d7414f3b91f937a1b46165c4c873f9d0fda9b4a2e0f6de3e08e912b68c90e"
+      "sha256": "ae5591a79fa1e3f91c332bbef62890146fb79d18945658239aed82228638ad60"
     },
     "left_arm_base_Link.STL": {
       "bytes": 212784,
-      "sha256": "bb346f006b49475dd264c3e7d3e702fb5536ef074a13ded12c872351c5402190"
+      "sha256": "ae167025b5446608a638e3d0998b16b47fe26df65b707d3f5407c5209ecff892"
     },
     "left_shoulder_Link.STL": {
       "bytes": 160884,
-      "sha256": "7c37bc204bfac6dd9a5fc56ae70b225505251c6d4a4e084f3979b5bc1595495c"
+      "sha256": "a723b2ebcece3898d3a4a88976d1fca9bbaefd5cf7b9dc640a10c26094040385"
     },
     "left_upperarm1_Link.STL": {
       "bytes": 710384,
-      "sha256": "1475ac582976bb71dd6489200714cfdf51c7bd22972dfa60f9e2fbc298ef0283"
+      "sha256": "7675e2653a9b07a6ac5569ec4f8f875c29782230269c48c385b38ed4511ab42d"
     },
     "left_upperarm2_Link.STL": {
-      "bytes": 133184,
-      "sha256": "25ac92c7402304764bc30de6530a81fef372fe3d585a4f0600d5fc95c4d602ce"
+      "bytes": 131484,
+      "sha256": "3528ea22d46d640578ac40617495e31abfb728cb92707032cf1ad665cdcd77db"
     },
     "left_forearm1_Link.STL": {
       "bytes": 384184,
-      "sha256": "68897641eb71783dfa1038ac1d300a9107360b44d3ad94a96729f71c970b90a1"
+      "sha256": "d7d3d0d277fe15282bf5a5c494af46a709b0748ffac6146386e01edba103d8ea"
     },
     "left_forearm2_Link.STL": {
       "bytes": 214684,
-      "sha256": "d6cd8c7ae3065c61c1be196be987465f5105783e2700947062e910ac92389077"
+      "sha256": "d805707ec2759b4ec2cc2506a03c712a05472f929e909b90cbcecab981bdf582"
     },
     "left_waist1_Link.STL": {
       "bytes": 78184,
-      "sha256": "5b6a3182a914d8a6b2ab0314d307fe4200b7cd433659b6312d214ea0db05fdd8"
+      "sha256": "470569a77b5879474b0ff37a4266cdbc16d032d254ff2e61884428673ba500c6"
     },
     "left_waist2_Link.STL": {
       "bytes": 609784,
-      "sha256": "1c185dc613b1a07a2914b0b7988ddf2d49c673cb731ea8858290982996578e24"
+      "sha256": "e561477a974939c4e1084b9e19b2dab0900bd93ca06e517572ae95b53eda62f2"
     },
     "right_arm_base_Link.STL": {
       "bytes": 212784,
-      "sha256": "708e2058eafd757a5567bdb004026052f263eda6dd2d77ce257ece0d102f1fa5"
+      "sha256": "4b99c674d5d23cdb6671986d6fe601fcb3136f6d2a08b49d22890d5c41294fa2"
     },
     "right_shoulder_Link.STL": {
       "bytes": 160884,
-      "sha256": "8b7cbdb0f784d8f72038b737406becebb43bbb100ca0cb12150e200ca5f402bd"
+      "sha256": "63c1b73d63c2b8cbd9608917d1aff62094b8f820bd88991242fd821268a1a5c0"
     },
     "right_upperarm1_Link.STL": {
       "bytes": 710184,
-      "sha256": "e705db0317fe26ccfb2829e6f47ed145206c13f0d9f039e9ed4a99a7e1cf5508"
+      "sha256": "5e6d3064f95cc717192d9c5a29f2a401a30b820664926ada753b7a895b7843f0"
     },
     "right_upperarm2_Link.STL": {
-      "bytes": 133184,
-      "sha256": "152bda3b3436255b5fd3b8b4add80762ec1596e54b9deea93aff5bd9075d9789"
+      "bytes": 131484,
+      "sha256": "620775fb6c4abae0b2132cd427d068e5538dcc5619912104a4b19f23b0012af1"
     },
     "right_forearm1_Link.STL": {
       "bytes": 384184,
-      "sha256": "883169865e731d166d4a3787083374411eecc65020861b5f0c621e4c068eaecd"
+      "sha256": "eb9341d57bb32df25ddc8ffd57463db3088f4217207c70c1fdb6e830342ff943"
     },
     "right_forearm2_Link.STL": {
       "bytes": 214684,
-      "sha256": "b5d76e9de3b537c687c555edd5d6b9d8abb7f561c69e48238838708d5330aec8"
+      "sha256": "39f361354c8c6f305a3823c93850bc949973a91a344893ae76a10bf5382a0300"
     },
     "right_waist1_Link.STL": {
       "bytes": 78184,
-      "sha256": "58d0e922acf9d57a9c6612a71d3f91e1113fcb059d47beb3b8df50d80dd846f3"
+      "sha256": "b3cf213a24b23f5ff8806a86e13833fd5929ed04ce241e4d8ecb9d44c0b7afa9"
     },
     "right_waist2_Link.STL": {
       "bytes": 626784,
-      "sha256": "26fe89baefbb92e4281db3525903d230dce2f370e201d8debae15e6bc242a5c6"
+      "sha256": "16839ea50559dde730f33a47f4156be125419fa309d8e6832bef20ff9f4ff37e"
     }
   }
 }

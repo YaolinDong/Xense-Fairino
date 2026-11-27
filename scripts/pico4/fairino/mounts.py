@@ -12,14 +12,14 @@ import xml.etree.ElementTree as ET
 import numpy as np
 
 MODEL_PATH = Path(__file__).resolve().parent / "models/fairino_wheel_legged_robot_description.urdf"
-SOURCE_ARCHIVE = "轮足机器人URDF模型外发-v1.0-20260731.zip"
-SOURCE_SHA256 = "d64b19f6fc825ecdd2c97dbeb26514f844cba2ce28fa010864c0eed11e190cbe"
-MAPPING_ID = "art7-both-chest-urdf-20260731-v1"
+SOURCE_ARCHIVE = "RD53-轮足机器人URDF和模型-v1.0-20261030"
+SOURCE_SHA256 = "96d4b4fb6e6a584bc55e1e9f1cf538ff9b02cc2093f1cda1cc983cd48199be9c"
+MAPPING_ID = "art7-both-chest-urdf-20261030-v1"
 
-# body_Link has +X toward the left arm, +Z toward the head, hence -Y forward.
+# body_Link has -X toward the left arm, +Z toward the head, hence +Y forward.
 # Keep its origin; expose a right-handed chest frame with X forward/Y left/Z up.
-CHEST_FROM_BODY = np.array([[0., -1., 0., 0.],
-                            [1., 0., 0., 0.],
+CHEST_FROM_BODY = np.array([[0., 1., 0., 0.],
+                            [-1., 0., 0., 0.],
                             [0., 0., 1., 0.],
                             [0., 0., 0., 1.]])
 

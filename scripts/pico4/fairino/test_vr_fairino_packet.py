@@ -6,13 +6,11 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
-import xml.etree.ElementTree as ET
 
 import numpy as np
 
 import paths
 from body_core import load_config
-from mounts import MODEL_PATH
 from tcp_core import MODEL_ID, tcp_forward_matrix
 from vr_core import (KIND, TORSO_JOINTS, TORSO_LIMITS, direct_positions, require_robot_request,
                      torso_in_limits, validate)
@@ -41,6 +39,8 @@ class PacketContract(unittest.TestCase):
         self.torso = dict(target=self.q[AXES].tolist(), path_offset_mm=0.)
 
     def test_old_outputs_remain_byte_identical(self):
+        with self.assertRaisesRegex(ValueError, '协议'):
+            validate(self.hw, dict(self.packet, kind='fairino_pico_cartesian_v4'), 100.)
         held = self.q.copy()
         held[14:] += .001
         for backend in (None, 'native', 'vendor', 'tron2'):
@@ -75,16 +75,19 @@ class PacketContract(unittest.TestCase):
         self.assertEqual([i+1 for i, (a,b) in enumerate(zip(old,new)) if a != b], list(TORSO_JOINTS))
         self.assertEqual([new[14], new[16]], [held[14], held[16]])
 
-    def test_receiver_urdf_table_and_mapping(self):
-        root = ET.parse(MODEL_PATH)
+    def test_same_hardware_positions_pass_as_before_rd53(self):
+        # b80f539 receiver bounds in its original coordinate convention.
+        old = ((20, -1, 0., .9599), (19, 1, 0., 2.2689), (18, -1, -1.0472, 1.0472),
+               (17, 1, -.4887, .4887), (16, 1, -3.002, 3.002))
         self.assertEqual(tuple(row[:3] for row in TORSO_LIMITS), TORSO_MAPPING)
-        for j,name,sign,lo,hi in TORSO_LIMITS:
-            limits = root.find(f"./joint[@name='{name}']/limit")
-            self.assertEqual((lo,hi), tuple(float(limits.get(k)) for k in ('lower','upper')))
-            for bound in (lo-.001,hi+.001):
+        for number, old_sign, lo, hi in old:
+            offset = math.radians(self.body.neutral) if number == 18 else 0.
+            for angle in (lo-.001, lo, lo+.001, hi-.001, hi, hi+.001):
                 q = self.q.copy()
-                q[j-1] = sign*(bound-(math.radians(self.body.neutral) if j == 18 else 0.))
-                self.assertFalse(torso_in_limits(q,self.body))
+                q[number-1] = old_sign * (angle-offset)
+                legacy_angle = old_sign*q[number-1] + offset
+                with self.subTest(joint=number, angle=angle):
+                    self.assertEqual(torso_in_limits(q, self.body), lo <= legacy_angle <= hi)
 
     def test_receiver_checks_both_path_offsets_jump_and_roll(self):
         def check(current, target, offset=0.):
@@ -100,8 +103,9 @@ class PacketContract(unittest.TestCase):
             check(self.q, pose(self.body, yaw=1.51))
         with self.assertRaisesRegex(ValueError, '侧倾'):
             check(pose(self.body, roll=.21), self.q)
-        bad = pose(self.body, 32., forward=-.8)
-        with self.assertRaisesRegex(ValueError, 'URDF'):
+        bad = self.q.copy()
+        bad[19] = math.radians(-60.)
+        with self.assertRaisesRegex(ValueError, '软件限位'):
             check(bad, bad)
 
     def test_small_locked_roll_does_not_reject_mid_height(self):

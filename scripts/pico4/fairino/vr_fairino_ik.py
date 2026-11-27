@@ -18,7 +18,7 @@ from tcp_core import ARMS, MODEL_ID, check_arm_limits, finite_vector, multiply, 
 from tool_frames import for_arm, validate_runtime
 from tools.ik_experiments.fairino_qp_art7 import (
     Art7FairinoQP, ORIENTATION_DEG, POSITION_MM, WORLD_FROM_BASE,
-    matrix_error, rigid_transform, torso_angles,
+    TORSO_MAPPING, matrix_error, rigid_transform, torso_angles,
 )
 from vendor_kinematics import VendorKinematics
 from vr_core import (BODY_EPS, KIND, PATH_LIMIT_MM, PATH_TOL_MM, TORSO_JOINTS, TORSO_ROLL_DEG,
@@ -126,14 +126,14 @@ class BodyPath:
         if h < self.lower[0]-BODY_EPS:
             raise _body_error(f'当前路径请升至 {math.ceil(self.lower[0]*100)/100:.2f}% 以上')
         if not torso_in_limits(q, body):
-            raise _body_error('启动躯干姿态超出 URDF 限位')
+            raise _body_error('启动躯干姿态超出 Fairino QP 软件限位')
         slopes = []
         for height in np.linspace(self.lower[0], self.upper[0], 33):
             for p in (self.lower[1], self.upper[1]):
                 for y in (self.lower[2], self.upper[2]):
                     candidate, dz, _ = self.at_height(height, p, y, q)
                     if not torso_in_limits(candidate, body):
-                        raise _body_error('本次身体包络超出 URDF 限位')
+                        raise _body_error('本次身体包络超出 Fairino QP 软件限位')
             slopes.append(abs(dz[17]/dz[18]))
         self.coord_min = self.lower.copy()
         self.coord_max = self.upper.copy()
@@ -246,7 +246,7 @@ class FairinoQPIK:
         self.reset()
         root = ET.parse(MODEL_PATH)
         self.chain = []
-        for name in ('j20', 'j19', 'j18', 'j16', 'j15'):
+        for _, name, _ in TORSO_MAPPING:
             joint = root.find(f"./joint[@name='{name}']")
             axis = np.fromstring(joint.find('axis').get('xyz'), sep=' ')
             # The pinned torso URDF contains only +Z and -Z revolutes.

@@ -9,9 +9,8 @@ from apps.fairino_upper_probe.body_control.body_core import load_config
 
 ROOT = Path(__file__).resolve().parents[2]
 URDF = ROOT / 'scripts/pico4/fairino/models/fairino_wheel_legged_robot_description.urdf'
-SHA256 = 'd64b19f6fc825ecdd2c97dbeb26514f844cba2ce28fa010864c0eed11e190cbe'
-VERIFIED_UPPER = {f'j{i}': f'j{i}' for i in range(1, 15)}
-BODY_SIGNS = {'j18': -1., 'j19': 1., 'j20': -1.}
+SHA256 = '96d4b4fb6e6a584bc55e1e9f1cf538ff9b02cc2093f1cda1cc983cd48199be9c'
+UPPER_JOINTS = tuple(f'j{i}' for i in range(1, 18))
 
 
 def rotation(axis, angle):
@@ -83,14 +82,12 @@ class RobotModel:
         if len(names) != 20 or len(values) != 20 or len(set(names)) != 20:
             raise ValueError('上半身关节反馈格式不符')
         measured = dict(zip(names, values))
-        result = {model: measured[physical] for physical, model in VERIFIED_UPPER.items()}
-        if demo:
-            result.update(j15=measured['j16'], j16=measured['j17'])
+        result = {name: measured[name] for name in UPPER_JOINTS}
         if self.body.config.get('upright_confirmed'):
-            result.update({name: measured[name]*sign for name, sign in BODY_SIGNS.items()})
+            result.update({name: measured[name] for name in ('j18', 'j19', 'j20')})
             # Display convention only: the saved user-declared vertical reference
             # defines zero chest pitch. Do not alter encoders or motion targets.
-            result['j18'] += math.radians(self.body.neutral)
+            result['j18'] -= math.radians(self.body.neutral)
         return result
 
     def body_state(self, hardware):
@@ -116,7 +113,7 @@ class ModelPlot:
         _, segments = self.model.transforms({})
         for name, a, b in segments:
             color = '#b2b9c2'
-            line, = self.ax.plot(*np.array([a, b]).T, '-o', linewidth=5 if name in VERIFIED_UPPER else 3,
+            line, = self.ax.plot(*np.array([a, b]).T, '-o', linewidth=5 if name in UPPER_JOINTS else 3,
                                  markersize=3, color=color)
             self.lines[name] = line
         self.last_positions = {}
@@ -132,9 +129,9 @@ class ModelPlot:
             line.set_data_3d(*values)
             source = name.split('_')[0]
             color = '#168caf' if source in {f'j{i}' for i in range(1, 8)} else '#ef852b'
-            if source in BODY_SIGNS:
+            if source in ('j15', 'j16', 'j17', 'j18', 'j19', 'j20'):
                 color = '#6b8e64'
             line.set_color(color if fresh and source in self.last_positions else '#b2b9c2')
-        self.title.set_text('实测双臂 / 折叠关节 · 身体几何为估算' if fresh else
+        self.title.set_text('实测双臂 / 头部 / 躯干 · 身体几何为估算' if fresh else
                             '实时模型尚未启用 · 静态参考' if not live_arms else
                             '模型数据未更新 · 灰色为参考 / 最后姿态')

@@ -511,7 +511,7 @@ def operate(args, kin, stream, connection):
                             cartesian.accepted_plan(outgoing, frame, hands)
                             targets_rate.mark(now)
                             log.write(json.dumps({"local_time": time.time(), "plan_monotonic": now, "vr_stamp": frame["stamp"],
-                                "sensitivity": sensitivity, "mapping": 'fairino_qp_fixed_base' if whole_body else MAPPING_ID,
+                                "sensitivity": sensitivity, "mapping": f'fairino_qp_fixed_base_{MAPPING_ID}' if whole_body else MAPPING_ID,
                                 "ik_backend": ik_backend,
                                 "mode": control_mode, "rotation_mode": rotation_mode, "controller_sides": hands,
                                 "heading_yaw_deg": heading_yaw_deg,

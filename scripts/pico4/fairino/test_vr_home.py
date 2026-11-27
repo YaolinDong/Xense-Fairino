@@ -129,7 +129,13 @@ class HomeTests(unittest.TestCase):
         transforms, _ = RobotModel().transforms(positions)
         # Torso mirror is world X; vendor wrist frames have mirrored local Y.
         mirrored = np.diag([-1., 1., 1., 1.]) @ transforms['right_waist2_Link'] @ np.diag([1., -1., 1., 1.])
-        np.testing.assert_allclose(transforms['left_waist2_Link'], mirrored, atol=3e-5)
+        # Compare position and rotation in the same units as the ART7 FK gate.
+        left = transforms['left_waist2_Link'].copy()
+        left[:3, 3] *= 1000.
+        mirrored[:3, 3] *= 1000.
+        mm, deg = pose_error(left, mirrored)
+        self.assertLess(mm, .02)
+        self.assertLess(deg, .01)
         self.assertEqual(second['max_joint_speed_deg_s'], self.home['max_joint_speed_deg_s'])
         with self.assertRaises(ValueError):
             resolve_home('unknown')
@@ -149,9 +155,12 @@ class HomeTests(unittest.TestCase):
             with self.subTest(side=side):
                 self.assertLess(kin.verify_tcp(q, side)['roundtrip_deg'], .0001)
         chest = tcp_in_chest('left', kin.forward_tcp(home['target']['left'], 'left')[0])
-        np.testing.assert_allclose(chest[:3, 3], [300., -100., -100.], atol=.01)
+        np.testing.assert_allclose(chest[:3, 3], [300., -114.5, -99.], atol=.01)
         # The gripper projects along flange -X; chest -Y is robot right.
-        np.testing.assert_allclose(-chest[:3, 0], [0., -1., 0.], atol=1e-6)
+        direction = -chest[:3, 0]
+        # Rounding the two CAD mount yaws to 1.5708 offsets the heading by 0.00042°.
+        self.assertLess(math.degrees(math.atan2(math.hypot(direction[0], direction[2]),
+                                                -direction[1])), .001)
 
     def test_cross_body_home_paths_from_both_presets_pass_wrist_margin_and_speed_reserve(self):
         home = load_home(resolve_home('left_cross_body'))

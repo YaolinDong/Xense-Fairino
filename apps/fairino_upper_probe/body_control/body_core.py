@@ -8,6 +8,17 @@ import math
 from pathlib import Path
 
 BODY = (16, 17, 18, 19, 20)
+# Fairino QP position bounds from b80f539, expressed in RD53 joint coordinates.
+# Each torso row holds hardware ID, model joint, direction, lower and upper (rad).
+# J18 is relative to the calibrated upright sum. J20 now follows the encoder sign.
+QP_TORSO_LIMITS = (
+    (20, 'j20', 1, -.9599, 0.),
+    (19, 'j19', 1, 0., 2.2689),
+    (18, 'j18', 1, -1.0472, 1.0472),
+    (17, 'j17', 1, -.4887, .4887),
+    (16, 'j16', 1, -3.002, 3.002),
+)
+QP_HEAD_LIMITS = (-3.002, 3.002)  # The dual-arm solver locks the head at model zero.
 DEG = 180.0 / math.pi
 EPS = 1e-7
 

@@ -31,6 +31,11 @@
       "sha256": "d64b19f6fc825ecdd2c97dbeb26514f844cba2ce28fa010864c0eed11e190cbe"
     },
     {
+      "path": "models/whole_body_20261030.urdf",
+      "bytes": 42976,
+      "sha256": "96d4b4fb6e6a584bc55e1e9f1cf538ff9b02cc2093f1cda1cc983cd48199be9c"
+    },
+    {
       "path": "models/amr_8dof.urdf",
       "bytes": 4751,
       "sha256": "b41369001387ddf343aa55718bc8941f9ab9ba0656f88fedfb82a0fd282fa185",

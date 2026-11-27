@@ -1,5 +1,6 @@
 """Offline adapter checks. Each native case gets a fresh Python process."""
 from functools import wraps
+import hashlib
 import math
 from pathlib import Path
 import subprocess
@@ -13,15 +14,32 @@ import numpy as np
 from apps.fairino_tcp_probe.tcp_core import pose_error, tcp_forward_matrix
 from apps.fairino_tcp_probe.tool_frames import for_arm, tool_config
 from apps.workbench.model import RobotModel, URDF
-from scripts.pico4.fairino.mounts import BODY_FROM_DH
+from scripts.pico4.fairino.mounts import BODY_FROM_DH, CHEST_FROM_BODY
 from tools.ik_experiments import fairino_qp_art7 as adapter
 from tools.ik_experiments.evaluate_fairino_qp import body_pose, homes, solver_reference, world_frame
-from tools.ik_experiments.setup_fairino_ik import ROOT
+from tools.ik_experiments.setup_fairino_ik import ROOT, VENDOR
 
 NATIVE_CHILD = __name__ == '__main__' and '--native-case' in sys.argv
 
 
 class DefinitionTests(unittest.TestCase):
+    @unittest.skipUnless((VENDOR / 'CMakeLists.txt').is_file(), 'Optional fairino_ik submodule absent')
+    def test_rd53_assets_match_pinned_ik_submodule(self):
+        packaged = VENDOR / 'models/fairino'
+        self.assertEqual(URDF.read_bytes(), (ROOT / 'models/whole_body_20261030.urdf').read_bytes())
+        local = ET.parse(URDF).getroot()
+        upstream = ET.parse(packaged / 'fairino_wheel_legged_robot.urdf').getroot()
+        # The manufacturer uses package:// URIs; the upstream wheel uses relative paths.
+        for root in (local, upstream):
+            for mesh in root.iter('mesh'):
+                mesh.set('filename', Path(mesh.get('filename')).name)
+        self.assertEqual(ET.tostring(local), ET.tostring(upstream))
+        for name in {mesh.get('filename') for mesh in local.iter('mesh')}:
+            mine = ROOT / 'models/whole_body_meshes' / name
+            theirs = packaged / 'meshes' / name
+            self.assertEqual(hashlib.sha256(mine.read_bytes()).digest(),
+                             hashlib.sha256(theirs.read_bytes()).digest(), name)
+
     def test_fast_rigid_check_and_error_match_reference(self):
         rng = np.random.default_rng(2026)
         for tol in (1e-8, 1e-6):
@@ -52,7 +70,7 @@ class DefinitionTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     adapter.rigid_transform(t)
 
-    def test_only_arm_limits_and_exact_dh_arm_angles_change(self):
+    def test_project_joint_limits_and_exact_dh_arms_preserve_rd53_geometry(self):
         actual = ET.fromstring(adapter.model_xml())
         expected = ET.parse(URDF).getroot()
         for i, name in enumerate(adapter.ARM_NAMES):
@@ -62,15 +80,21 @@ class DefinitionTests(unittest.TestCase):
             for key, col in [('lower', 0), ('upper', 1)]:
                 self.assertEqual(float(limit.get(key)), adapter.ARM_LIMITS[i, col])
                 limit.set(key, vendor.find('limit').get(key))
-            # Each truncated right angle becomes exactly +/-pi/2, sign preserved.
-            for value, original in zip(joint.find('origin').get('rpy').split(),
-                                       vendor.find('origin').get('rpy').split(), strict=True):
-                self.assertEqual(float(value), float(original) and math.copysign(math.pi / 2, float(original)))
-            joint.find('origin').set('rpy', vendor.find('origin').get('rpy'))
-            if name in adapter.LAST_WRIST_JOINTS:
-                self.assertEqual(joint.find('axis').get('xyz'), '0 0 1')
-                joint.find('axis').set('xyz', vendor.find('axis').get('xyz'))
-        # Torso, head, wheels and both arm mounts keep the vendor numbers.
+            # Each arm CAD axis and origin is restored to its nearest DH value.
+            for tag, attr, step in [('origin', 'rpy', math.pi/2), ('axis', 'xyz', 1.)]:
+                original = vendor.find(tag).get(attr)
+                exact = [round(float(v) / step) * step for v in original.split()]
+                self.assertEqual(list(map(float, joint.find(tag).get(attr).split())), exact)
+                joint.find(tag).set(attr, original)
+        head_torso = {'j15': adapter.QP_HEAD_LIMITS}
+        head_torso.update({name: (lo, hi) for _, name, _, lo, hi in adapter.QP_TORSO_LIMITS})
+        for name, bounds in head_torso.items():
+            limit = actual.find(f"joint[@name='{name}']/limit")
+            vendor = expected.find(f"joint[@name='{name}']/limit")
+            self.assertEqual(tuple(float(limit.get(k)) for k in ('lower', 'upper')), bounds)
+            for key in ('lower', 'upper'):
+                limit.set(key, vendor.get(key))
+        # All other geometry, axes, effort and velocity limits retain the vendor values.
         self.assertEqual(ET.tostring(actual), ET.tostring(expected))
 
     def test_elbow_lower_bound_only_raises_both_elbows(self):
@@ -102,7 +126,7 @@ class DefinitionTests(unittest.TestCase):
             q = body_pose(model.body, height, forward, roll, yaw)
             positions = adapter.urdf_coordinates(q, math.radians(model.body.neutral))
             raw, _ = model.transforms(positions)
-            return world_frame(raw['body_Link']) @ adapter.WORLD_FROM_BASE.T
+            return world_frame(raw['body_Link']) @ CHEST_FROM_BODY.T
         # X forward, Y left, Z up. Infer chest heading and lean from two
         # independent physical directions (chest forward and chest up).
         for sign in (-1, 1):
@@ -167,16 +191,18 @@ class NativeTests(unittest.TestCase):
         calls = (lambda q: self.solver.forward('left', q), self.solver.frames,
                  lambda q: self.solver.solve_body(dict(left=np.eye(4), right=np.eye(4)), q),
                  lambda q: self.solver.solve_arms(dict(left=np.eye(4), right=np.eye(4)), q))
+        np.testing.assert_array_equal(self.solver.torso_limits, [row[3:] for row in adapter.QP_TORSO_LIMITS])
         for (number, name, sign), (lo, hi) in zip(adapter.TORSO_MAPPING, self.solver.torso_limits):
             for outside in (lo - 1e-9, hi + 1e-9):
                 q = self.seed.copy()
-                q[number - 1] = sign * (outside - (self.solver.upright_rad if name == 'j18' else 0.))
+                q[number - 1] = sign * (outside + (self.solver.upright_rad if name == 'j18' else 0.))
                 for call in calls:
-                    with self.assertRaisesRegex(ValueError, name + ' outside URDF'):
+                    with self.assertRaisesRegex(ValueError, name + ' outside Fairino QP'):
                         call(q)
         low = body_pose(self.model.body, 30)
-        with self.assertRaisesRegex(ValueError, 'j18 outside URDF'):
-            self.solver.forward('right', low)
+        for side in adapter.SIDES:
+            with self.assertRaisesRegex(ValueError, 'j18 outside Fairino QP'):
+                self.solver.forward(side, low)
 
     @native_case
     def test_selected_chest_body_direction_and_mutable_goal(self):

@@ -159,7 +159,7 @@ class IndependentURDFTests(unittest.TestCase):
                      for j in range(3)] for i in range(3)]
         def fk(q):
             T=eye(4)
-            for name,theta in [('j20',-q[19]),('j19',q[18]),('j18',-q[17]),('j16',q[16]),('j15',q[15])]:
+            for name,theta in [('j20',q[19]),('j19',q[18]),('j18',q[17]-math.radians(m.neutral)),('j17',q[16]),('j16',q[15])]:
                 j=joints[name];o=j.find('origin')
                 xyz=[float(v) for v in o.get('xyz').split()]
                 r,p,y=[float(v) for v in o.get('rpy').split()]

@@ -14,6 +14,15 @@ TRON2 使用压缩包中的 C++ QP 核心，已适配当前 ART7 模型和 TCP�
 首次需安装可选依赖；本机加载和模型正解预检失败时不会连接机器人或回退算法。
 安装、实机流程和保护区别见 [TRON2 接入说明](../../docs/SLAM与PICO模型演示.md#tron2-qp-后端)。
 
+Fairino QP 使用 Pinocchio 4.1.0 和 RD53 20261030 整机模型。已安装 PICO 环境时，可在仓库根目录初始化子模块并编译独立后端。
+
+```bash
+git submodule update --init third_party/fairino_ik
+.local/pico4/env/bin/python tools/ik_experiments/setup_fairino_ik.py --install
+```
+
+工作台选择「Fairino QP IK」，或在现有遥操启动命令中指定 `--ik-backend fairino_qp`。PICO 两端使用 v5 协议；TCP 键控使用 RD53 胸部坐标标识。关节对应关系见 [RD53 模型说明](fairino/models/README.md)。
+
 工作台「遥操方式」可选择「镜像遥操 · 面对机器人」（默认）或「第一人称 · 与机器人同向」。
 镜像模式仍使用既有的面对面位移和镜像旋转，右手柄控制机器人左臂/左爪，左手柄控制右臂/右爪；
 第一人称为同侧手柄控制同侧手臂/夹爪，位移和旋转都同向。必须结束本次遥操后再切换模式。
@@ -94,7 +103,7 @@ bash run.sh vr --grippers --left-gripper-max-open-percent 60 --right-gripper-max
 
 第三项保存在 [home_pose_left_cross_body.json](fairino/home_pose_left_cross_body.json)。
 身体直立、使用当前夹爪安装配置时，左爪指尖水平朝机器人自身右侧，横在身体前方；
-固定指尖 TCP 相对胸部坐标原点为前方 300 mm、右侧 100 mm、下方 100 mm。
+按 RD53 20261030 安装座计算，这组已确认关节角的指尖 TCP 位于胸部原点前方约 300 mm、右侧 114.5 mm、下方 99 mm。预设 JSON 中的来源坐标记录的是 10 月 23 日预览时使用的旧模型。
 **右臂也会回到原 Home1 的固定角度，不是保持启动时的实时位置。**
 工作台选择第三项后启动遥操，独立命令行使用：
 

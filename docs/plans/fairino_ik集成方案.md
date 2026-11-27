@@ -12,33 +12,17 @@ PICO 遥操可选 `fairino_qp`：用 `fairino_ik` 的 C++ QP 解双臂 14 轴 + 
 
 ## 依赖
 
-- 源码：`third_party/fairino_ik` 是 git submodule，指向 `git@github.com:XenseRobotics-AI/fairino_ik.git` 的 `feat/pinocchio-4.1.0` 分支，固定在 `09a5674`（`pin==4.1.0`、`eiquadprog==1.3.2`），**不修改上游源码**。上游无 LICENSE 文件，在 `THIRD_PARTY_NOTICES.md` 记录来源。克隆本仓后需 `git submodule update --init third_party/fairino_ik`。
+- 源码：`third_party/fairino_ik` 是 git submodule，指向 `git@github.com:XenseRobotics-AI/fairino_ik.git` 的 `main` 分支，固定在 `dd8cdc5`（`pin==4.1.0`、`eiquadprog==1.3.2`），**不修改上游源码**。上游无 LICENSE 文件，在 `THIRD_PARTY_NOTICES.md` 记录来源。克隆本仓后需 `git submodule update --init third_party/fairino_ik`。
 - 安装：参照 `tools/ik_experiments/setup_tron2_ik.py` 写 `setup_fairino_ik.py`，依赖与编译产物都放在独立缓存 `.local/fairino-ik/`，与 tron2 缓存分开，不向 PICO 环境 `pip install`。
 - 解释器与 PICO 相同（`.local/pico4/env/bin/python`，Py3.12，numpy 2.5.4）。C++ 扩展只用 `pybind11/stl.h`，不依赖 numpy ABI；运行时不 import Pinocchio 的 Python 绑定，仍用 PICO 环境的 numpy。上游 `pyproject.toml` 里的 `numpy==2.2.4` 对本集成不适用。
 - **两套 Pinocchio 不能同进程混用**：tron2 用 3.9.0 且以 `RTLD_GLOBAL` 预加载。`fairino_qp` 的加载器发现本进程已加载 `tron2_ik` 原生库时直接报错；需要原生库的 `fairino_qp` 测试在独立子进程里跑。扩展的共享库只能解析到 `.local/fairino-ik/`，不能解析到 `/opt/ros` 或 tron2 缓存。
 - 依赖缺失时启动即报错，**不得静默回退到其它 IK**。
 
-## 关节映射（以本仓为准，已真机验证）
+## 当前关节映射（RD53 20261030）
 
-硬件 J1–J7 左臂、J8–J14 右臂、J15 头部、J16 腰旋转、J17 侧倾、J18–J20 折叠（`docs/功能汇总.md`、`body_core.py`、`apps/workbench/model.py`）。
+工作台和遥操使用厂家 RD53 20261030 URDF。双臂为 J1–J14；J15 对应头部、J16 对应腰旋转、J17 对应侧倾，模型编号与实机一致。头部在双臂 IK 中固定，工作台按实测角度显示。躯干链按 j20、j19、j18、j17、j16 排列。编码器到模型的换算仅在 J18 扣除身体程序的竖直参考角度和，返回硬件角时加回该参考。
 
-URDF 的链是 `base →(j20)→ smallleg →(j19)→ bigleg →(j18)→ hip →(j16)→ waist →(j15)→ body →(j17)→ head`，双臂挂在 `body_Link`。所以 fairino_ik 的分组（躯干 `j20, j19, j18, j16, j15`，头 `j17`）按 URDF 名字是对的，**不改 fairino_ik 的分组**，只做硬件 ↔ URDF 的映射表：
-
-| 硬件 | URDF | 换算 | 说明 |
-|---|---|---|---|
-| J1–J14 | j1–j14 | 相同 | 已有 `VERIFIED_UPPER` |
-| J15 头 | j17 | 不参与求解 | 头不在手臂链上；模型里固定为 0，避免每次重建约化模型 |
-| J16 腰旋转 | j15 | +1 | 右负左正（`body_control/README.md`） |
-| J17 侧倾 | j16 | +1 | 左负右正；URDF 限位 ±28° |
-| J18 | j18 | −1，再加竖直参考 `upright_joint_sum_deg` | 同 `model.py` |
-| J19 | j19 | +1 | `BODY_SIGNS` |
-| J20 | j20 | −1 | `BODY_SIGNS` |
-
-- J16/J17 的符号由身体程序的方向约定加 URDF 正解离线推得（本仓 numpy 正解核对：URDF j15 正向 = 胸部左转，j16 正向 = 向右倾），第 1 步用单测固化。
-- 求解用的 URDF 由本仓 sha 固定的 `scripts/pico4/fairino/models/fairino_wheel_legged_robot_description.urdf` 生成副本（放 `.local/fairino-ik/models/`），只改两处，躯干、安装座和其它关节保持厂家值。该 URDF 与 fairino_ik 自带 URDF 的全部关节参数逐项一致。
-  - 手臂 14 轴限位改为 `tcp_core.BOUNDS_DEG`（厂家 URDF 的 j11 上限 2.9548 与本仓不符）。
-  - 手臂链还原成 DH 精确值：截断的 ±1.5708 改为 ±π/2，j7/j14 的轴向 `(2.8659e-5, ±3.2204e-5, 1)` 改为 `(0, 0, 1)`。原因见「第 1 步结果」。
-- fairino_ik 对超限的 seed 会静默钳位（`cpp/src/solver.cpp` `toReduced`）。封装层在调用求解器之前检查：换算后的躯干角超出 URDF 限位就报错，不允许钳位。
+求解用 URDF 按厂家文件的 SHA-256 校验。两侧手臂使用 `tcp_core.BOUNDS_DEG`；将 CAD 导出的微小轴向偏量、直角截断恢复为 ART7 DH 名义值，固定安装座与躯干几何使用 RD53。原生求解模型和接收端共用本仓迁移前的软件角度限位，J18 按竖直标定校正。模型来源与坐标见 [遥操模型](../../scripts/pico4/fairino/models/README.md)。
 
 ## 工具点
 
@@ -59,7 +43,7 @@ fairino_ik 世界系 = `Rz(+90°)·base_link`（x 前 y 左 z 上，原点 base_
 
 1. **只握一侧 Grip**：松开侧关节保持不动，丢弃求解器给它的解；它的 TCP 随躯干移动。
 2. **躯干活动范围（第一版保守）**
-   - 实测躯干换算后超出 URDF 限位则拒绝启动。按现有标定，前倾 0 时高度 32.3% 以下 j18 超过 ±60°，这个范围 `fairino_qp` 不可用（加余量后下界约 33–36%，随支点偏移和起始前倾变化）；VR 预设下位 66.7% 不受影响。
+   - 实测躯干换算后超出软件限位则拒绝启动。低位边界按当前标定、支点偏移和仓库原限位计算，另加 0.5 个百分点的软件余量。VR 预设下位仍为 66.7%。
    - 躯干解投影回 `body_core` 的身体量（高度、前倾、腰旋转），折叠支点的前后偏移保持启动时的值，不离开升降路径。
    - 2026-11-19 设计时修订（待用户确认，见「第 2 步设计」）：侧倾第一版锁定不动；躯干接近包络边界时提前减速并停在边界，手臂按实际躯干复解并校验。原表述「越界即保持并报错」会让躯干几乎不可用，因为 QP 的解几乎总带一点侧倾分量。
 3. **躯干限速**：`torso_velocity_limit` 只限单次迭代步长，限不住每周期位移。每个周期按三段执行：
@@ -73,7 +57,7 @@ fairino_ik 世界系 = `Rz(+90°)·base_link`（x 前 y 左 z 上，原点 base_
    - 躯干回程用 `body_core.plan()` 的分段轨迹（先回正侧倾 → 对齐升降路径 → 升降与姿态），经 `fairino_qp` 的躯干通道逐周期下发，校验与遥操相同，中止条件与 Home 相同。
    - 其它三种 IK 的 Home 行为不变（仍只动双臂）。
 
-## 分步实施
+## 分步实施（以下为 20260731 模型的历史验证记录）
 
 **第 1 步：引入源码 + 编译 + 离线对齐（不连机器人，不改遥操代码）**
 - `third_party/fairino_ik/`、`tools/ik_experiments/setup_fairino_ik.py`、`THIRD_PARTY_NOTICES.md`。

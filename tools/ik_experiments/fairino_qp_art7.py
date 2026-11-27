@@ -15,59 +15,60 @@ import numpy as np
 
 from apps.fairino_tcp_probe.tcp_core import BOUNDS_DEG, FLANGE_OFFSET_MM
 from apps.fairino_tcp_probe.tool_frames import for_arm
-from apps.fairino_upper_probe.body_control.body_core import load_config
+from apps.fairino_upper_probe.body_control.body_core import QP_HEAD_LIMITS, QP_TORSO_LIMITS, load_config
 from apps.workbench.model import SHA256, URDF
 from tools.ik_experiments.setup_fairino_ik import CACHE, PREFIX, check_linkage, extension_path
 
-# Hardware joint number, URDF name, multiplier. J18 additionally receives the
+# Hardware joint number, URDF name, multiplier. J18 is expressed relative to the
 # calibrated upright joint sum. J15 is measured but the solver never sees it.
 ARM_NAMES = ('j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7',
              'j8', 'j9', 'j10', 'j11', 'j12', 'j13', 'j14')
-HEAD_MAPPING = (15, 'j17', 0.)
-TORSO_MAPPING = ((20, 'j20', -1.), (19, 'j19', 1.), (18, 'j18', -1.),
-                 (17, 'j16', 1.), (16, 'j15', 1.))
+HEAD_MAPPING = (15, 'j15', 0.)
+TORSO_MAPPING = tuple(row[:3] for row in QP_TORSO_LIMITS)
 WORLD_FROM_BASE = np.array([[0., -1., 0., 0.], [1., 0., 0., 0.],
                             [0., 0., 1., 0.], [0., 0., 0., 1.]])
 SIDES = ('left', 'right')
 POSITION_MM, ORIENTATION_DEG = .02, .01
 NATIVE_DT = .02  # fairino_ik IKOptions.dt default
 ARM_LIMITS = np.tile(np.radians(BOUNDS_DEG), (2, 1))
-VENDOR_RIGHT_ANGLE = 1.5708
-LAST_WRIST_JOINTS = ('j7', 'j14')
+CAD_ANGLE_TOLERANCE = 1e-4
 ELBOW_JOINTS = ('j4', 'j11')
 ELBOW_INDEX = (3, 10)
 
 
 def model_xml(elbow_min_deg=None):
-    """Vendor whole-body URDF with this repo's arm limits and exact ART7 DH arms.
+    """RD53 geometry with project joint limits and exact ART7 DH arms.
 
-    The CAD export truncates every right angle in the arm chains to 1.5708 and
-    tilts the last wrist axis by about 4e-5 rad. Against the DH model used by
-    all independent TCP validation that costs up to 0.0217 mm at the gripper
-    tip, above the 0.02 mm gate. Restoring the exact values removes it (< 1e-9 mm).
-    Torso, mounts and every other joint keep the vendor numbers.
+    The RD53 arm origins and axes contain small CAD export residuals.
+    Restore the nominal cardinal axes and quarter turns for comparison with
+    the independent ART7 DH solver. Torso and mount geometry come from CAD.
     """
     original = URDF.read_bytes()
     if hashlib.sha256(original).hexdigest() != SHA256:
         raise ValueError('Whole-body URDF changed; recheck the joint mapping')
     root = ET.fromstring(original)
-    for name, (lower, upper) in zip(ARM_NAMES, ARM_LIMITS, strict=True):
-        joint = root.find(f"joint[@name='{name}']")
-        limit = joint.find('limit')
+    bounds = dict(zip(ARM_NAMES, ARM_LIMITS, strict=True))
+    bounds[HEAD_MAPPING[1]] = QP_HEAD_LIMITS
+    bounds.update({name: (lower, upper) for _, name, _, lower, upper in QP_TORSO_LIMITS})
+    for name, (lower, upper) in bounds.items():
+        limit = root.find(f"joint[@name='{name}']/limit")
         limit.set('lower', str(float(lower)))
         limit.set('upper', str(float(upper)))
+    for name in ARM_NAMES:
+        joint = root.find(f"joint[@name='{name}']")
         origin = joint.find('origin')
         rpy = [float(value) for value in origin.get('rpy').split()]
-        if any(value and abs(value) != VENDOR_RIGHT_ANGLE for value in rpy):
-            raise ValueError(f'{name}: arm origin is no longer a truncated right angle')
-        origin.set('rpy', ' '.join(repr(math.copysign(math.pi / 2, value)) if value else '0'
-                                   for value in rpy))
-    for name in LAST_WRIST_JOINTS:
-        axis = root.find(f"joint[@name='{name}']/axis")
-        x, y, z = (float(value) for value in axis.get('xyz').split())
-        if z != 1. or max(abs(x), abs(y)) > 1e-4:
-            raise ValueError(f'{name}: last wrist axis is no longer a slightly tilted +Z')
-        axis.set('xyz', '0 0 1')
+        nominal = [round(value / (math.pi / 2)) * (math.pi / 2) for value in rpy]
+        if any(abs(value - exact) > CAD_ANGLE_TOLERANCE for value, exact in zip(rpy, nominal)):
+            raise ValueError(f'{name}: unexpected ART7 arm origin')
+        origin.set('rpy', ' '.join(map(str, nominal)))
+        axis = joint.find('axis')
+        values = [float(value) for value in axis.get('xyz').split()]
+        cardinal = [round(value) for value in values]
+        if (sum(abs(v) for v in cardinal) != 1 or
+                any(abs(v - n) > CAD_ANGLE_TOLERANCE for v, n in zip(values, cardinal))):
+            raise ValueError(f'{name}: unexpected ART7 joint axis')
+        axis.set('xyz', ' '.join(map(str, cardinal)))
     if elbow_min_deg is not None:
         # Solver model only: keep both elbows on the Home (positive) branch.
         # fairino_ik's posture task acts in the hands' null space and cannot
@@ -144,7 +145,7 @@ def _hardware(values, *, copy=False):
 
 
 def _torso_values(hardware, upright_rad):
-    return [sign * hardware[number - 1] + (upright_rad if name == 'j18' else 0.)
+    return [sign * hardware[number - 1] - (upright_rad if name == 'j18' else 0.)
             for number, name, sign in TORSO_MAPPING]
 
 
@@ -266,8 +267,8 @@ class Art7FairinoQP:
         self._tool_inverse = {side: None if optimize_tool_tcp else np.linalg.inv(offset).tobytes()
                               for side, offset in self.wrist_from_tool.items()}
         names = list(ARM_NAMES) + [row[1] for row in TORSO_MAPPING]
-        if list(self._body.joint_names) != names:
-            raise RuntimeError('Upstream joint order differs from the hardware mapping')
+        if list(self._body.joint_names) != names or self._body.head_joint != HEAD_MAPPING[1]:
+            raise RuntimeError('Upstream joint order or head joint differs from the RD53 hardware mapping')
         self.torso_limits = np.asarray(self._body.torso_limits)
         self._torso_bounds = self.torso_limits.tolist()
 
@@ -275,7 +276,7 @@ class Art7FairinoQP:
         torso = _torso_values(q, self.upright_rad)
         for (_, name, _), value, (lo, hi) in zip(TORSO_MAPPING, torso, self._torso_bounds, strict=True):
             if not lo <= value <= hi:
-                raise ValueError(f'{name} outside URDF limits: {value} not in [{lo}, {hi}] rad')
+                raise ValueError(f'{name} outside Fairino QP limits: {value} not in [{lo}, {hi}] rad')
         return torso
 
     def _seed(self, q, active, max_iterations=None, arms_first_iterations=None, damping=None,
@@ -362,7 +363,7 @@ class Art7FairinoQP:
         q[:14] = solution[:14]
         if active:
             for (number, name, sign), value in zip(TORSO_MAPPING, solution[14:], strict=True):
-                q[number - 1] = sign * (value - (self.upright_rad if name == 'j18' else 0.))
+                q[number - 1] = sign * (value + (self.upright_rad if name == 'j18' else 0.))
         # Check the native result once, then use the same validated seed
         # and options for both sides. A body direction only consumes joints.
         _hardware(q)

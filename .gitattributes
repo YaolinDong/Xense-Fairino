@@ -9,3 +9,6 @@
 
 # URDF source hashes are verified byte-for-byte by kinematics tests.
 *.urdf -text
+# The two RD53 vendor copies retain SolidWorks CRLF and header whitespace.
+models/whole_body_20261030.urdf -whitespace
+scripts/pico4/fairino/models/fairino_wheel_legged_robot_description.urdf -whitespace

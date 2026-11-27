@@ -148,19 +148,19 @@ class NetworkTests(unittest.TestCase):
 
 
 class ModelTests(unittest.TestCase):
-    def test_saved_fold_mapping_is_used_and_unverified_axes_are_static(self):
+    def test_rd53_measured_joints_include_head_and_waist(self):
         model = RobotModel()
         hardware = {'joint_names':[f'j{i}' for i in range(1,21)], 'position':[.1]*14+[9.]*6}
         positions = model.measured_positions(hardware)
-        self.assertEqual(len(positions), 17)
-        self.assertNotIn('j15', positions)
-        self.assertNotIn('j16', positions)
-        self.assertNotIn('j17', positions)
+        self.assertEqual(len(positions), 20)
+        self.assertEqual(positions['j15'], 9.)
+        self.assertEqual(positions['j16'], 9.)
+        self.assertEqual(positions['j17'], 9.)
         self.assertEqual(positions['j14'], .1)
         self.assertAlmostEqual(positions['j19'], 9.)
-        self.assertAlmostEqual(positions['j20'], -9.)
+        self.assertAlmostEqual(positions['j20'], 9.)
 
-    def test_demo_only_torso_display_matches_adapter_mapping(self):
+    def test_demo_and_feedback_match_rd53_joint_order(self):
         import math
         from tools.ik_experiments.fairino_qp_art7 import TORSO_MAPPING, torso_angles
         model = RobotModel()
@@ -169,9 +169,8 @@ class ModelTests(unittest.TestCase):
         hardware = dict(joint_names=names[::-1], position=q[::-1])
         default = model.measured_positions(hardware)
         demo = model.measured_positions(hardware, demo=True)
-        self.assertEqual(set(demo)-set(default), {'j15', 'j16'})
-        self.assertEqual(default, {k: demo[k] for k in default})
-        self.assertNotIn('j17', demo)
+        self.assertEqual(default, demo)
+        self.assertEqual(demo['j15'], q[14])
         for (_, name, _), angle in zip(TORSO_MAPPING, torso_angles(q, math.radians(model.body.neutral))):
             self.assertEqual(demo[name], angle)
 
@@ -186,7 +185,7 @@ class ModelTests(unittest.TestCase):
             transforms, _ = model.transforms(positions)
             poses.append(transforms)
             self.assertAlmostEqual(model.body_state(hw)['height'], height, places=7)
-            np.testing.assert_allclose(transforms['body_Link'][:3, :3], np.eye(3), atol=3e-5)
+            np.testing.assert_allclose(transforms['body_Link'][:3, :3], np.diag([-1., -1., 1.]), atol=3e-5)
         self.assertAlmostEqual((poses[1]['hip_Link'][2,3]-poses[0]['hip_Link'][2,3])*1000,
                                model.body.travel, places=6)
 

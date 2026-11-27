@@ -363,7 +363,7 @@ class ModelView(Gtk.Box):
                 self.reset_camera()
         if not self.render_error:
             if demo:
-                title = ('模型 Demo · 模拟双臂 / 折叠关节' if self.fresh else
+                title = ('模型 Demo · 模拟双臂 / 头部 / 躯干' if self.fresh else
                          '模型 Demo · 等待新数据，保留姿态' if demo_active else
                          '模型 Demo · 已停止，保留姿态' if self.received_pose else '模型 Demo · 等待启动')
                 warning = [name for side, name in [('left', '左腕'), ('right', '右腕')]
@@ -373,6 +373,6 @@ class ModelView(Gtk.Box):
                     title += ' · '+ ' / '.join(warning)
                 self.title.set_text(title)
             else:
-                self.title.set_text('实体模型 · 实测双臂 / 折叠关节' if self.fresh else
+                self.title.set_text('实体模型 · 实测双臂 / 头部 / 躯干' if self.fresh else
                                     '实体模型 · 静态参考' if not live_arms else '实体模型 · 无新反馈，保留最后姿态')
         self.area.queue_render()

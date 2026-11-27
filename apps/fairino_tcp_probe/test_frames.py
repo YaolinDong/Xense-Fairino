@@ -29,7 +29,7 @@ class ChestFrameTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.kin = VendorKinematics()
-        data = (Path(__file__).resolve().parents[2]/'models/whole_body_20260731.urdf').read_bytes()
+        data = (Path(__file__).resolve().parents[2]/'models/whole_body_20261030.urdf').read_bytes()
         if hashlib.sha256(data).hexdigest() != SOURCE_SHA256:
             raise ValueError('厂家安装模型已改变，需重新核对')
         cls.joints = {j.get('name'): j for j in ET.fromstring(data).findall('joint')}
@@ -42,8 +42,8 @@ class ChestFrameTests(unittest.TestCase):
         return t
 
     def full_flange(self, arm, q):
-        # Chest forward = -body Y, left = body X, up = body Z.
-        t = mmul([[0,-1,0,0],[1,0,0,0],[0,0,1,0],[0,0,0,1]],
+        # Chest forward = body Y, left = -body X, up = body Z.
+        t = mmul([[0,1,0,0],[-1,0,0,0],[0,0,1,0],[0,0,0,1]],
                  self.origin(self.joints[arm+'_arm_fixed_j1']))
         for i,angle in enumerate(q,1 if arm=='left' else 8):
             joint = self.joints['j'+str(i)]
@@ -61,8 +61,8 @@ class ChestFrameTests(unittest.TestCase):
             self.assertLess(mm,.02); self.assertLess(deg,.01)
             mm,deg = pose_error(base,tcp_in_base(arm,chest))
             self.assertLess(mm,1e-9); self.assertLess(deg,1e-5)
-            self.assertAlmostEqual(CHEST_FROM_DH[arm][1][3],62.5 if arm=='left' else -62.5,places=4)
-            self.assertAlmostEqual(CHEST_FROM_DH[arm][2][3],329.,delta=.002)
+            self.assertAlmostEqual(CHEST_FROM_DH[arm][1][3],48. if arm=='left' else -48.,places=4)
+            self.assertAlmostEqual(CHEST_FROM_DH[arm][2][3],330.,delta=.002)
 
     def test_all_24_signed_chest_targets_match_independent_full_urdf(self):
         hw = hardware()
@@ -86,7 +86,7 @@ class ChestFrameTests(unittest.TestCase):
         hw = hardware()
         r = make_request(self.kin,hw,'left',0,1,8,2,4)
         r.update(id=1,created=10.)
-        for mutation in ({'kind':'tcp_hold_v1'},{'frame':'base'},{'frame':None}):
+        for mutation in ({'kind':'tcp_hold_v1'},{'frame':'base'},{'frame':'art7-both-chest-urdf-20260731-v1'},{'frame':None}):
             with self.subTest(mutation=mutation),self.assertRaises(ValueError):
                 validate_velocity(hw,{**r,**mutation},10.)
         base,angle = self.kin.forward_tcp(r['reference'])

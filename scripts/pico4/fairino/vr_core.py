@@ -1,18 +1,15 @@
 """Robot-side, standard-library-only validation of bimanual IK requests."""
 import math
+from body_core import QP_TORSO_LIMITS as TORSO_LIMITS
 from tcp_core import MODEL_ID, ARMS, check_arm_limits, finite_vector, tcp_forward_matrix, pose_error, multiply
 from tool_frames import tool_config, validate_runtime, for_arm
 from tcp_jog import LEASE
 from vr_lift import lift_axis
 
-KIND = "fairino_pico_cartesian_v4"
+KIND = "fairino_pico_cartesian_v5"
 LIFT_MODE = "preset_v1"
 ROBOT_IK_BACKENDS = ('native', 'vendor', 'tron2', 'fairino_qp')
 TORSO_JOINTS = (16, 18, 19, 20)
-# Hardware number, URDF joint, direction and manufacturer limits (rad).
-TORSO_LIMITS = ((20, 'j20', -1, 0., .9599), (19, 'j19', 1, 0., 2.2689),
-                (18, 'j18', -1, -1.0472, 1.0472), (17, 'j16', 1, -.4887, .4887),
-                (16, 'j15', 1, -3.002, 3.002))
 TORSO_ROLL_DEG = .2
 PATH_LIMIT_MM = 5.
 PATH_TOL_MM = .05
@@ -22,7 +19,7 @@ BODY_EPS = 1e-9  # Roundoff at an inclusive body-state boundary (mm, %, degrees)
 
 def torso_in_limits(q, body):
     neutral = math.radians(body.neutral)
-    return all(lo <= sign*q[j-1] + (neutral if name == 'j18' else 0.) <= hi
+    return all(lo <= sign*q[j-1] - (neutral if name == 'j18' else 0.) <= hi
                for j, name, sign, lo, hi in TORSO_LIMITS)
 
 
@@ -48,7 +45,7 @@ def validate_torso(hw, torso, body):
             raise ValueError('躯干指令跳变过大')
         q[j-1] = value
     if not torso_in_limits(q, body):
-        raise ValueError('躯干目标超出 URDF 限位')
+        raise ValueError('躯干目标超出 Fairino QP 软件限位')
     state = body.state(q)
     if not (-1.-BODY_EPS <= state['height'] <= 101.+BODY_EPS
             and -1.-BODY_EPS <= state['forward'] <= 46.+BODY_EPS

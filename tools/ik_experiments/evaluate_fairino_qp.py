@@ -17,7 +17,7 @@ from apps.fairino_tcp_probe.tcp_core import FLANGE_OFFSET_MM, pose_error, tcp_fo
 from apps.fairino_tcp_probe.tool_frames import for_arm, tool_config
 from apps.workbench.model import RobotModel, rotation
 from scripts.pico4.fairino.home_presets import HOME_PRESETS
-from scripts.pico4.fairino.mounts import BODY_FROM_DH
+from scripts.pico4.fairino.mounts import BODY_FROM_DH, CHEST_FROM_BODY
 from tools.ik_experiments.fairino_qp_art7 import (
     ARM_LIMITS, CACHE, ORIENTATION_DEG, POSITION_MM, SIDES, TORSO_MAPPING,
     Art7FairinoQP, WORLD_FROM_BASE, model_xml, torso_angles, urdf_coordinates,
@@ -134,7 +134,7 @@ def mapping_audit(solver, model):
         height, forward, roll, yaw = state
         q = body_pose(body, *state)
         frames = solver.frames(q)
-        chest = frames['body_Link'] @ WORLD_FROM_BASE.T
+        chest = frames['body_Link'] @ CHEST_FROM_BODY.T
         expected = np.eye(4)
         expected[:3, :3] = expected_rotation(forward, roll, yaw)
         _, angle = pose_error(chest, expected)
@@ -151,7 +151,7 @@ def mapping_audit(solver, model):
 
 
 def height_limits(solver, body):
-    # All three fold angles decrease monotonically along this calibrated lift path.
+    # Each fold angle is monotonic along this calibrated lift path.
     rows = []
     for forward in (0, 5, 15, 25, 35, 45):
         cutoffs = {}
@@ -159,14 +159,14 @@ def height_limits(solver, body):
             lo, hi = solver.torso_limits[i]
             def angle(height):
                 return torso_angles(body_pose(body, height, forward), solver.upright_rad)[i]
-            if angle(100) < lo or angle(100) > hi or angle(0) < lo:
+            if angle(100) < lo or angle(100) > hi:
                 raise ValueError(f'Recheck height interval topology for {name}')
-            if angle(0) <= hi:
+            if lo <= angle(0) <= hi:
                 continue
             left, right = 0., 100.
             for _ in range(52):
                 mid = (left + right) / 2
-                if angle(mid) > hi:
+                if not lo <= angle(mid) <= hi:
                     left = mid
                 else:
                     right = mid
@@ -177,8 +177,8 @@ def height_limits(solver, body):
 
 # Reproduce the *initial* upstream box samples; a failed hold solve may move
 # away from its seed and reports the returned candidate's clearance instead.
-BOXES_MM = {'body_Link': ((0, 7.5, 225), (160, 168.7, 225)),
-            'waist_Link': ((0, 30.05, -129.1), (118, 109.95, 185.9)),
+BOXES_MM = {'body_Link': ((0, -7.52, 225.5), (160.01, 168.69, 224.5)),
+            'waist_Link': ((30.04, 0, -49.09), (109.97, 118, 185.91)),
             'base_link': ((0, -149.33, 20.25), (301.65, 382.33, 191.25))}
 
 

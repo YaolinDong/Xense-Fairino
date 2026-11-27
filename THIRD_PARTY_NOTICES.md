@@ -7,6 +7,6 @@
 - PC Service/APK 版本、URL 与校验见 [assets.json](scripts/pico4/assets.json)，安装到项目 `.local/pico4/`。
 - ADB 来自 Google 官方 Android Platform Tools。
 - 雷达图来源见 [sources.json](docs/images/sources.json)，模型校验见 [manifest.json](models/manifest.json)。
-- `third_party/fairino_ik/` 是 git submodule，指向内部仓库 `XenseRobotics-AI/fairino_ik` 的 `feat/pinocchio-4.1.0` 分支，固定在提交 `09a5674cc7353f005bf090fdeb54069952b954b7`。该提交未附 LICENSE 文件。
+- `third_party/fairino_ik/` 是 git submodule，指向内部仓库 `XenseRobotics-AI/fairino_ik` 的 `main` 分支，固定在提交 `dd8cdc5d69e74f19514ff63077c69b752f5f316c`。该提交未附 LICENSE 文件。
 
 第三方资源原有许可不因项目集成而改变。

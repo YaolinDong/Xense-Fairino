@@ -65,14 +65,17 @@ class NativeTests(unittest.TestCase):
 
     @native_case
     def test_command_bits_match_recorded_requests(self):
-        # Recorded with the same native build and inputs (fairino_ik Home posture,
-        # elbow lower bound, 40 iterations, per-cycle arm step bound). Include the side
-        # mask and every IEEE-754 target in wire order. RECORD_DIGESTS=1 prints new values.
+        # Recorded with RD53 geometry, the b80f539 position bounds and Pinocchio 4.1.0 (Home posture,
+        # elbow lower bound, 40 iterations, per-cycle arm step bound), with fairino_ik 596f90d
+        # (strict dual-wrist priority over the Home posture). Against the previous solver
+        # (dd8cdc5) wrist errors match within 0.11 mm and 0.01 deg; only redundant arm joints
+        # differ, by up to 1.8 deg. Include the side mask and every IEEE-754 target in wire
+        # order. RECORD_DIGESTS=1 prints new values.
         for offset, sides, expected in (
-                (.2, ('left', 'right'), '0f8a20e91e57d9cf5623d9fe97dcb34dc88dfd175b3d787e6b093603a4a9adff'),
-                (300., ('left', 'right'), 'ff89b2fae3d940f88083772abfe35d48fbafaaa6b42010f24647fe6286fc98b5'),
-                (2500., ('left',), 'c585377a24b95b1b98e19e4d0bc2ec5f5f351b39b84aab8a52178a031e5c5154'),
-                (1., ('right',), '2922ffd012470ec60f351f8ce96363c5c93ee04ed01979ee9e1ab0f1f8947177')):
+                (.2, ('left', 'right'), 'aa60ef17be424fd2bc42de55b0b7afb3c429f5d6d899ee1a116728ab5cf07083'),
+                (300., ('left', 'right'), '3ddf5e308e9a2fa7ed50638ba04bcf467b3b8113c64f6262f8e08b32f6f26663'),
+                (2500., ('left',), '38f276d293fdc3c0ee8d5f2a0ad675ea29648a5a350f1cfbcd6d25fb21ef1fa9'),
+                (1., ('right',), '4bf562bb57923c01174a24d4429eb331d7ac7282f2c9c7407659f8669febc3eb')):
             goals = {s: self.goals[s].copy() for s in sides}
             for side, goal in goals.items():
                 goal[:3, 3] += WORLD_FROM_V[side][:3, :3].T @ [offset, 0., -offset]

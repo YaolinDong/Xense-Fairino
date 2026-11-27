@@ -6,16 +6,16 @@ compare them with that source and with the PICO mapping. All output lengths mm.
 """
 from tcp_core import identity, multiply, rotation, target_matrix
 
-CHEST_FRAME_ID = 'art7-both-chest-urdf-20260731-v1'
-SOURCE_ARCHIVE = '轮足机器人URDF模型外发-v1.0-20260731.zip'
-SOURCE_SHA256 = 'd64b19f6fc825ecdd2c97dbeb26514f844cba2ce28fa010864c0eed11e190cbe'
+CHEST_FRAME_ID = 'art7-both-chest-urdf-20261030-v1'
+SOURCE_ARCHIVE = 'RD53-轮足机器人URDF和模型-v1.0-20261030'
+SOURCE_SHA256 = '96d4b4fb6e6a584bc55e1e9f1cf538ff9b02cc2093f1cda1cc983cd48199be9c'
 # body_Link -> arm base: origin xyz [m], rpy [rad]; then arm-base -> DH XY [m].
 MOUNTS = {
-    'left': ((.0625, -.00085876, .32861), (-1.5708, .7854, -1.5708), (-.00088174, .00033281)),
-    'right': ((-.0625, .00038821, .32986), (1.5708, .7854, -1.5708), (.00088174, -.00033281)),
+    'left': ((-.048, .00085882, .32961), (-1.5708, .7854, 1.5708), (-.00088174, .00033281)),
+    'right': ((.048, -.00038815, .33086), (1.5708, .7854, 1.5708), (.00088174, -.00033281)),
 }
-# Chest origin = body_Link origin; chest X/Y/Z = body -Y/+X/+Z.
-CHEST_FROM_BODY = [[0., -1., 0., 0.], [1., 0., 0., 0.],
+# Chest origin = body_Link origin; chest X/Y/Z = body +Y/-X/+Z.
+CHEST_FROM_BODY = [[0., 1., 0., 0.], [-1., 0., 0., 0.],
                    [0., 0., 1., 0.], [0., 0., 0., 1.]]
 
 
